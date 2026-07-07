@@ -73,13 +73,13 @@ async def apply_action(item_id: str, request: ActionRequest) -> dict:
     item = find_item(item_id)
 
     if request.action == "claim":
-        if item["status"] in {"approved", "rejected", "escalated"}:
-            raise HTTPException(status_code=409, detail="This item cannot be claimed")
+        if item["status"] != "unassigned":
+            raise HTTPException(status_code=409, detail="Only unassigned items can be claimed")
         item["status"] = "in_review"
         item["assigned_reviewer"] = request.reviewer
     elif request.action in {"approve", "reject", "escalate"}:
-        if item["status"] == "approved":
-            raise HTTPException(status_code=409, detail="This item has already been approved")
+        if item["status"] != "in_review":
+            raise HTTPException(status_code=409, detail="Item must be in review to perform this action")
         item["status"] = status_for_action(request.action)
     else:
         raise HTTPException(status_code=400, detail="Unsupported action")
