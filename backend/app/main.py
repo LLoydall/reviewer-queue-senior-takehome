@@ -13,6 +13,7 @@ from pydantic import BaseModel
 DATA_FILE = Path(__file__).resolve().parents[2] / "data" / "review_items.json"
 
 ReviewAction = Literal["claim", "approve", "reject", "escalate"]
+TERMINAL_STATES = {"approved", "rejected", "escalated"}
 
 
 class ActionRequest(BaseModel):
@@ -56,7 +57,7 @@ async def list_review_items(active_only: bool = True) -> dict:
     items = deepcopy(ITEMS)
 
     if active_only:
-        items = [item for item in items if item["status"] != "approved"]
+        items = [item for item in items if not is_terminal(item["status"])]
 
     items.sort(key=lambda item: item["submitted_at"], reverse=True)
     return {"items": items}
@@ -102,3 +103,6 @@ def status_for_action(action: ReviewAction) -> str:
     if action == "escalate":
         return "escalated"
     return "in_review"
+
+def is_terminal(status: str) -> bool:
+    return status in TERMINAL_STATES
