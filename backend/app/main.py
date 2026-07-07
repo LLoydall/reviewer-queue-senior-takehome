@@ -53,21 +53,24 @@ async def reset_items() -> dict:
 
 
 @app.get("/review-items")
-async def list_review_items(active_only: bool = True) -> dict:
+async def list_review_items(list_type: str = "active") -> dict:
     items = deepcopy(ITEMS)
 
-    if active_only:
+    if list_type == "active":
         items = [item for item in items if not is_terminal(item["status"])]
+        
+        risk_weight = {"high": 1, "medium": 2, "low": 3}
+        tier_weight = {"priority": 1, "standard": 2}
+        
+        items.sort(key=lambda item: (
+            risk_weight.get(item["risk_level"], 99),
+            tier_weight.get(item["customer_tier"], 99),
+            item["submitted_at"] 
+        ))
+    elif list_type == "terminal":
+        items = [item for item in items if is_terminal(item["status"])]
+        items.sort(key=lambda item: item["submitted_at"], reverse=True)
 
-    risk_weight = {"high": 1, "medium": 2, "low": 3}
-    tier_weight = {"priority": 1, "standard": 2}
-
-    items.sort(key=lambda item: (
-        risk_weight.get(item["risk_level"], 99),
-        tier_weight.get(item["customer_tier"], 99),
-        item["submitted_at"] 
-    ))
-    
     return {"items": items}
 
 

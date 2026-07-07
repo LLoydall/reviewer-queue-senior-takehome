@@ -222,3 +222,39 @@ dd {
     margin-bottom: 16px;
   }
 }
+
+.queue-tabs {
+  display: flex;
+  border-bottom: 1px solid #d8dee9;
+  background: #f5f7fb;
+}
+
+.queue-tabs button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #5c6b7e;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.queue-tabs button.active {
+  background: #fff;
+  border-bottom-color: #4c7bd9;
+  color: #162033;
+}
+
+.queue-items-container {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.queue-empty {
+  padding: 16px;
+  color: #5c6b7e;
+  text-align: center;
+  font-size: 14px;
+}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import {
   applyReviewAction,
   fetchReviewItems,
@@ -13,6 +13,7 @@ const selectedId = ref<string | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const pendingAction = ref<ReviewAction | null>(null);
+const currentTab = ref<"active" | "terminal">("active");
 
 const selectedItem = computed(() =>
   items.value.find((item) => item.id === selectedId.value) ?? items.value[0] ?? null
@@ -23,14 +24,19 @@ async function loadItems() {
   errorMessage.value = null;
 
   try {
-    items.value = await fetchReviewItems();
-    selectedId.value = selectedItem.value?.id ?? null;
+    items.value = await fetchReviewItems(currentTab.value);
+    selectedId.value = items.value[0]?.id ?? null;
   } catch (error) {
     errorMessage.value = "Something went wrong loading the queue.";
   } finally {
     isLoading.value = false;
   }
 }
+
+watch(currentTab, () => {
+  selectedId.value = null;
+  loadItems();
+});
 
 async function performAction(action: ReviewAction) {
   if (!selectedItem.value) return;
@@ -42,7 +48,9 @@ async function performAction(action: ReviewAction) {
     const updated = await applyReviewAction(selectedItem.value.id, action, currentReviewer);
     
     const terminalStates = ["approved", "rejected", "escalated"];
-    if (terminalStates.includes(updated.status)) {
+    const isNowTerminal = terminalStates.includes(updated.status);
+
+    if (currentTab.value === "active" && isNowTerminal) {
       items.value = items.value.filter((item) => item.id !== updated.id);
       selectedId.value = items.value[0]?.id ?? null;
     } else {
@@ -70,7 +78,7 @@ onMounted(loadItems);
     <header class="topbar">
       <div>
         <p class="eyebrow">Reviewer workspace</p>
-        <h1>Active queue</h1>
+        <h1>{{ currentTab === 'active' ? 'Active queue' : 'Closed items' }}</h1>
       </div>
       <div class="reviewer">Signed in as {{ currentReviewer }}</div>
     </header>
@@ -80,18 +88,37 @@ onMounted(loadItems);
 
     <section v-else class="workspace">
       <aside class="queue-list" aria-label="Review queue">
-        <button
-          v-for="item in items"
-          :key="item.id"
-          class="queue-item"
-          :class="{ selected: item.id === selectedItem?.id }"
-          type="button"
-          @click="selectedId = item.id"
-        >
-          <span class="queue-title">{{ item.title }}</span>
-          <span class="queue-meta">{{ item.risk_level }} risk · {{ item.customer_tier }}</span>
-          <span class="queue-meta">{{ item.status }} · {{ item.assigned_reviewer ?? "unassigned" }}</span>
-        </button>
+        <div class="queue-tabs">
+          <button 
+            type="button" 
+            :class="{ active: currentTab === 'active' }" 
+            @click="currentTab = 'active'"
+          >Active</button>
+          <button 
+            type="button" 
+            :class="{ active: currentTab === 'terminal' }" 
+            @click="currentTab = 'terminal'"
+          >Closed</button>
+        </div>
+
+        <div class="queue-items-container">
+          <button
+            v-for="item in items"
+            :key="item.id"
+            class="queue-item"
+            :class="{ selected: item.id === selectedItem?.id }"
+            type="button"
+            @click="selectedId = item.id"
+          >
+            <span class="queue-title">{{ item.title }}</span>
+            <span class="queue-meta">{{ item.risk_level }} risk · {{ item.customer_tier }}</span>
+            <span class="queue-meta">{{ item.status }} · {{ item.assigned_reviewer ?? "unassigned" }}</span>
+          </button>
+          
+          <div v-if="items.length === 0 && !isLoading" class="queue-empty">
+            No items found.
+          </div>
+        </div>
       </aside>
 
       <section v-if="selectedItem" class="detail-panel">
