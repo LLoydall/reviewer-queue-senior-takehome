@@ -44,7 +44,8 @@ export async function applyReviewAction(
   });
 
   if (!response.ok) {
-    throw new Error("Action failed");
+    const errorDetail = await response.json().then((data) => data.detail).catch(() => "Unknown error");
+    throw new Error(`Could not apply action ${action} to item ${itemId}: ${errorDetail}`);
   }
 
   const payload = await response.json();

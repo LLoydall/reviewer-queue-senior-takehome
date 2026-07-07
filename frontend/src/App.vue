@@ -41,8 +41,8 @@ async function performAction(action: ReviewAction) {
   try {
     const updated = await applyReviewAction(selectedItem.value.id, action, currentReviewer);
     items.value = items.value.map((item) => (item.id === updated.id ? updated : item));
-  } catch (error) {
-    errorMessage.value = "That action could not be completed.";
+  } catch (error: any) {
+    errorMessage.value = error?.message ??  "That action could not be completed.";
   } finally {
     pendingAction.value = null;
   }
