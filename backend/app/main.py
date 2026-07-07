@@ -59,7 +59,15 @@ async def list_review_items(active_only: bool = True) -> dict:
     if active_only:
         items = [item for item in items if not is_terminal(item["status"])]
 
-    items.sort(key=lambda item: item["submitted_at"], reverse=True)
+    risk_weight = {"high": 1, "medium": 2, "low": 3}
+    tier_weight = {"priority": 1, "standard": 2}
+
+    items.sort(key=lambda item: (
+        risk_weight.get(item["risk_level"], 99),
+        tier_weight.get(item["customer_tier"], 99),
+        item["submitted_at"] 
+    ))
+    
     return {"items": items}
 
 
@@ -72,6 +80,9 @@ async def get_review_item(item_id: str) -> dict:
 @app.post("/review-items/{item_id}/actions")
 async def apply_action(item_id: str, request: ActionRequest) -> dict:
     item = find_item(item_id)
+
+    if is_terminal(item["status"]):
+        raise HTTPException(status_code=409, detail="This item is closed and cannot be modified")
 
     if request.action == "claim":
         if item["status"] != "unassigned":
