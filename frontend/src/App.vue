@@ -40,9 +40,16 @@ async function performAction(action: ReviewAction) {
 
   try {
     const updated = await applyReviewAction(selectedItem.value.id, action, currentReviewer);
-    items.value = items.value.map((item) => (item.id === updated.id ? updated : item));
-  } catch (error: any) {
-    errorMessage.value = error?.message ??  "That action could not be completed.";
+    
+    const terminalStates = ["approved", "rejected", "escalated"];
+    if (terminalStates.includes(updated.status)) {
+      items.value = items.value.filter((item) => item.id !== updated.id);
+      selectedId.value = items.value[0]?.id ?? null;
+    } else {
+      items.value = items.value.map((item) => (item.id === updated.id ? updated : item));
+    }
+  } catch (error: Error | unknown) {
+    errorMessage.value = error instanceof Error ? error.message : "That action could not be completed.";
   } finally {
     pendingAction.value = null;
   }
@@ -52,7 +59,7 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
     timeStyle: "short"
-  }).format(new Date(value));
+  } as Intl.DateTimeFormatOptions).format(new Date(value));
 }
 
 onMounted(loadItems);
